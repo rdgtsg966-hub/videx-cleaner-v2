@@ -53,15 +53,22 @@ app.post("/clean", async (req, res) => {
     // - blur 15% rodapé
     // - blur faixa vertical centro-esquerda (25% largura, 40% altura, começando em 30% da altura)
     // - sobrepõe as 3 regiões borradas em cima do vídeo base
-    const ffmpegFilter = (
-      "[0:v]split=4[base][t][b][l];" +
-      "[t]crop=iw:ih*0.15:0:0,gblur=sigma=14[topblur];" +
-      "[b]crop=iw:ih*0.15:0:ih*0.85,gblur=sigma=14[bottomblur];" +
-      "[l]crop=iw*0.25:ih*0.4:0:ih*0.3,gblur=sigma=20[leftblur];" +
-      "[base][topblur]overlay=0:0[step1];" +
-      "[step1][bottomblur]overlay=0:main_h-overlay_h[step2];" +
-      "[step2][leftblur]overlay=0:(main_h-overlay_h)/2"
-    );
+const ffmpegFilter = (
+  "[0:v]split=4[base][t][b][l];" +
+  // Topo: só 10% da altura, blur leve
+  "[t]crop=iw:ih*0.10:0:0,gblur=sigma=9[topblur];" +
+  // Rodapé: só 10% da altura, blur leve
+  "[b]crop=iw:ih*0.10:0:ih*0.90,gblur=sigma=9[bottomblur];" +
+  // Faixa da marca: estreita e no meio da tela
+  // largura: 18% da tela, altura: 35%, posição Y central
+  "[l]crop=iw*0.18:ih*0.35:0:ih*0.325,gblur=sigma=18[leftblur];" +
+  // aplica topo e rodapé
+  "[base][topblur]overlay=0:0[step1];" +
+  "[step1][bottomblur]overlay=0:main_h-overlay_h[step2];" +
+  // aplica faixa borrada mais pra dentro da tela (~18% da largura)
+  "[step2][leftblur]overlay=main_w*0.18:(main_h-overlay_h)/2"
+);
+
 
     const cmd = `ffmpeg -y -i "${inputPath}" -vf "${ffmpegFilter}" -c:a copy "${outputPath}"`;
 
